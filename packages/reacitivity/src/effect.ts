@@ -9,7 +9,7 @@ class ReactiveEffect{
     try{
       activeEffect = this
       return this.fn()
-    }finally{
+    }finally{  
       activeEffect = null
     }
   }
