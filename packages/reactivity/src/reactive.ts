@@ -1,5 +1,5 @@
 import { isObject } from "@vue/shared";
-
+import { trackEffect, triggerEffect } from "./effect";
 /** 记录原对象和代理对象的关系 */
 const reactiveMap = new WeakMap()
 
@@ -7,6 +7,8 @@ const reactiveMap = new WeakMap()
 const enum ReactiveFlags{
   IS_REACTIVE = '__v_isReactive'
 }
+
+
 
 export function reactive(obj){
   if(!isObject(obj)) return obj
@@ -16,12 +18,17 @@ export function reactive(obj){
     get(target, key, receiver){
       /** 判断是否已经为代理对象 */
       if(key === ReactiveFlags.IS_REACTIVE) return true
+      trackEffect(target,key)
       return Reflect.get(target, key, receiver)
     },
     set(target, key, value, receiver){
-      return Reflect.set(target, key, value, receiver)
+      let oldValue = target[key]
+      let result = Reflect.set(target, key, value, receiver)
+      if(oldValue !== value) {
+        triggerEffect(target, key, value)
+      }
+      return result
     }
   })
-  reactiveMap.set(obj,proxy)
   return proxy
 }
