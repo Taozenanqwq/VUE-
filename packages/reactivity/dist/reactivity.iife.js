@@ -27,12 +27,12 @@ var VueReactivity = (() => {
   // packages/reactivity/src/effect.ts
   var activeEffect;
   var ReactiveEffect = class {
-    constructor(fn) {
+    constructor(fn, schedular) {
       this.fn = fn;
+      this.schedular = schedular;
       this.active = true;
       this.parent = null;
       this.deps = [];
-      this.run();
     }
     run() {
       if (!this.active)
@@ -47,10 +47,18 @@ var VueReactivity = (() => {
         this.parent = null;
       }
     }
+    stop() {
+      if (this.active)
+        this.active = false;
+      cleanupEffects(this);
+    }
   };
-  function effect(fn) {
-    const _effect = new ReactiveEffect(fn);
-    return _effect;
+  function effect(fn, options = {}) {
+    const _effect = new ReactiveEffect(fn, options.schedular);
+    _effect.run();
+    const runner = _effect.run.bind(_effect);
+    runner.effect = _effect;
+    return runner;
   }
   var targetMap = /* @__PURE__ */ new WeakMap();
   function trackEffect(target, key) {
@@ -80,7 +88,7 @@ var VueReactivity = (() => {
     dep = new Set(dep);
     dep && dep.forEach((effect2) => {
       if (effect2 !== activeEffect)
-        effect2.run();
+        effect2.schedular ? effect2.schedular() : effect2.run();
     });
   }
   function cleanupEffects(activeEffect2) {

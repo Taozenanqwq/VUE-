@@ -3,8 +3,7 @@ export class ReactiveEffect{
   public active = true
   public parent = null
   public deps = []
-  constructor(public fn){
-    this.run()
+  constructor(public fn, public schedular ){
   }
   run(){
     if(!this.active) return this.fn()
@@ -19,11 +18,19 @@ export class ReactiveEffect{
       this.parent = null
     }
   }
+  stop(){
+     //停止收集依赖并且清空依赖
+     if(this.active) this.active = false
+     cleanupEffects(this)
+  }
 }
 
-export function effect(fn){
-  const _effect = new ReactiveEffect(fn)
-  return _effect
+export function effect(fn, options:any = {}){
+  const _effect = new ReactiveEffect(fn, options.schedular)
+  _effect.run()
+  const runner = _effect.run.bind(_effect) /** 绑定this值 */
+  runner.effect = _effect
+  return runner /** 返回该runner可以实现对effect的控制 */
 }
 
 const targetMap = new WeakMap()
@@ -52,7 +59,7 @@ export function triggerEffect(target, key, value){
   /** 不断清空依赖，删除依赖形成死循环，因此需要每次复制一份依赖执行 */
   dep = new Set(dep)
   dep && dep.forEach((effect)=>{
-    if(effect !== activeEffect) effect.run()
+    if(effect !== activeEffect) effect.schedular?effect.schedular():effect.run()
   })
 }
 
