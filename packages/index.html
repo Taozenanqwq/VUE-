@@ -10,11 +10,12 @@
   <script src="./reactivity/dist/reactivity.iife.js"></script>
   <script>
     const {effect, reactive} = VueReactivity
-    const obj = reactive({name:'tzn'})  
+    const obj = reactive({name:'tzn',age:18,flag:true})  
     effect(()=>{
-      console.log(obj.name)
+      console.log(obj.flag?obj.name:obj.age)
     })
     setTimeout(()=>{
+      obj.flag = false
       obj.name='lc'
     },1000)
 
