@@ -10,35 +10,18 @@
   <div id="app"></div>
   <script src="./reactivity/dist/reactivity.iife.js"></script>
   <script>
-    const {effect, reactive} = VueReactivity
+    const {effect, reactive, computed} = VueReactivity
     const obj = reactive({name:'tzn',age:18,flag:true})  
-    let waiting = false
-    const runner = effect(()=>{
-      console.log('render')
-      app.innerHTML = obj.name
-    },{schedular:()=>{
-      if(!waiting){
-        waiting = true
-        setTimeout(()=>{
-          runner()
-          waiting = false
-        })
-      }
-    }})
+    const comp = computed(()=>{
+      return obj.name + obj.age
+    })
+    console.log(comp)
+    effect(()=>{
+      app.innerHTML = comp.value
+    })
     setTimeout(()=>{
-      obj.name='lc'
-      obj.name='lc1'
-      obj.name='lc2'
-      obj.name='lc3'
-      obj.name='lc4'
-      obj.name='lc5'
-      obj.name='lc6'
-      obj.name='lc7'
-      obj.name='lc8'
-      obj.name='lc9'
-      obj.name='lc10'
+      obj.name = 'lc'
     },1000)
-
   </script>
 
 </body>

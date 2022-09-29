@@ -19,7 +19,12 @@ export function reactive(obj){
       /** 判断是否已经为代理对象 */
       if(key === ReactiveFlags.IS_REACTIVE) return true
       trackEffect(target,key)
-      return Reflect.get(target, key, receiver)
+      let res = Reflect.get(target, key, receiver)
+      /** 如果该值还是对象则返回它的代理 */
+      if(isObject(res)){
+        return reactive(res)
+      }
+      return res
     },
     set(target, key, value, receiver){
       let oldValue = target[key]
