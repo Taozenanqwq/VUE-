@@ -41,3 +41,10 @@ export function reactive(obj) {
   })
   return proxy
 }
+export function toReactive(val) {
+  if (isObject(val)) {
+    return reactive(val)
+  } else {
+    return val
+  }
+}

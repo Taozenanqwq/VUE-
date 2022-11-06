@@ -22,7 +22,9 @@ var VueReactivity = (() => {
   __export(src_exports, {
     computed: () => computed,
     effect: () => effect,
-    reactive: () => reactive
+    reactive: () => reactive,
+    ref: () => ref,
+    watch: () => watch
   });
 
   // packages/reactivity/src/effect.ts
@@ -112,6 +114,11 @@ var VueReactivity = (() => {
 
   // packages/reactivity/src/reactive.ts
   var reactiveMap = /* @__PURE__ */ new WeakMap();
+  function isReactive(obj) {
+    if (isObject(obj) && obj["__v_isReactive" /* IS_REACTIVE */])
+      return true;
+    return false;
+  }
   function reactive(obj) {
     if (!isObject(obj))
       return obj;
@@ -140,6 +147,13 @@ var VueReactivity = (() => {
       }
     });
     return proxy;
+  }
+  function toReactive(val) {
+    if (isObject(val)) {
+      return reactive(val);
+    } else {
+      return val;
+    }
   }
 
   // packages/reactivity/src/computed.ts
@@ -183,6 +197,68 @@ var VueReactivity = (() => {
     }
     return new ComputedRefImpl(getter, setter);
   };
+
+  // packages/reactivity/src/watch.ts
+  function traversal(source, set) {
+    if (!isObject(source))
+      return;
+    for (let key of source) {
+      if (!set.has(key)) {
+        traversal(key, set);
+        set.add(key);
+      }
+    }
+  }
+  function watch(source, cb) {
+    let callback;
+    let clean;
+    if (isReactive(source)) {
+      let set = /* @__PURE__ */ new Set();
+      source = () => traversal(source, set);
+    } else if (!isFunction(source)) {
+      return;
+    }
+    let onCleanup = (fn) => {
+      clean = fn;
+    };
+    let oldValue;
+    callback = () => {
+      clean && clean();
+      let newValue = effect3.run();
+      cb(newValue, oldValue, onCleanup);
+      oldValue = newValue;
+    };
+    const effect3 = new ReactiveEffect(source, callback);
+    oldValue = effect3.run();
+  }
+
+  // packages/reactivity/src/ref.ts
+  var RefImpl = class {
+    constructor(_rawVal) {
+      this._rawVal = _rawVal;
+      this.dep = /* @__PURE__ */ new Set();
+      this._value = toReactive(_rawVal);
+    }
+    get value() {
+      if (activeEffect) {
+        trackDepEffect(this.dep);
+      }
+      return this._value;
+    }
+    set value(newVal) {
+      if (newVal !== this._rawVal) {
+        this._rawVal = newVal;
+        this._value = toReactive(newVal);
+        triggerDepEffect(this.dep);
+      }
+    }
+  };
+  function createRef(value) {
+    return new RefImpl(value);
+  }
+  function ref(val) {
+    return createRef(val);
+  }
   return __toCommonJS(src_exports);
 })();
 //# sourceMappingURL=reactivity.iife.js.map

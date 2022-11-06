@@ -10,17 +10,13 @@
   <div id="app"></div>
   <script src="./reactivity/dist/reactivity.iife.js"></script>
   <script>
-    const {effect, reactive, computed} = VueReactivity
-    const obj = reactive({name:'tzn',age:18,flag:true})  
-    const comp = computed(()=>{
-      return obj.name + obj.age
-    })
-    console.log(comp)
+    const { ref, effect } = VueReactivity
+    const val = ref(0)
     effect(()=>{
-      app.innerHTML = comp.value
+      app.innerHTML = val.value
     })
     setTimeout(()=>{
-      obj.name = 'lc'
+      val.value = 10
     },1000)
   </script>
 
