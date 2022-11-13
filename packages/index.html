@@ -10,8 +10,15 @@
   <div id="app"></div>
   <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
   <script>
-    const { createApp } = VueRuntimeDom
-    createApp('this is a component',{style:{color:'red'}}).mount('#app')
+    const { createApp, h  } = VueRuntimeDom
+    let app = {
+      setup(props,context){
+        return (proxy)=>{
+          return h('div',{},'asdf')
+        }
+      }
+    }
+    let  t = createApp(app).mount('#app')
   </script>
 
 </body>
