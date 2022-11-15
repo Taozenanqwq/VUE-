@@ -36,7 +36,8 @@ var VueRuntimeDom = (() => {
   __export(src_exports, {
     createApp: () => createApp,
     createRenderer: () => createRenderer,
-    h: () => h
+    h: () => h,
+    ref: () => ref
   });
 
   // packages/runtime-dom/src/nodeOps.ts
@@ -49,7 +50,7 @@ var VueRuntimeDom = (() => {
       }
     },
     insert: (child, parent, anchor) => {
-      parent.insertChild(child, anchor);
+      parent.appendChild(child, anchor);
     },
     querySelector: (selector) => document.querySelector(selector),
     setElementText: (el, text) => el.textContent = text,
@@ -87,7 +88,7 @@ var VueRuntimeDom = (() => {
           }
         }
       }
-      for (let key of nextStyle) {
+      for (let key of Object.keys(nextStyle)) {
         style[key] = nextStyle[key];
       }
     }
@@ -107,7 +108,7 @@ var VueRuntimeDom = (() => {
     if (event && exists) {
       exists.value = event;
     } else {
-      const eventName = key.slice(2).toLowercase();
+      const eventName = key.slice(2).toLowerCase();
       if (event) {
         let invoker = invokers[eventName] = createInvoker(event);
         el.addEventListener(eventName, invoker);
@@ -164,7 +165,7 @@ var VueRuntimeDom = (() => {
       el: null,
       shapeFlag
     };
-    normalizeChildren(vnode, children);
+    vnode.shapeFlag = normalizeChildren(vnode, children);
     return vnode;
   };
   function normalizeChildren(vnode, children) {
@@ -180,6 +181,13 @@ var VueRuntimeDom = (() => {
   }
   var isVnode = (target) => {
     return target._v_isVNode;
+  };
+  var Text = Symbol("text");
+  var normalizeVnode = (vnode) => {
+    if (!isObject(vnode)) {
+      vnode = createVNode(Text, null, String(vnode));
+    }
+    return vnode;
   };
 
   // packages/runtime-core/src/createAppApi.ts
@@ -260,6 +268,7 @@ var VueRuntimeDom = (() => {
     if (setup) {
       const setupContext = createContext(instance);
       const setupResult = setup(instance.props, setupContext);
+      console.log(setupResult);
       handleSetupResult(instance, setupResult);
     } else {
       finishComponentSetup(instance);
@@ -321,12 +330,51 @@ var VueRuntimeDom = (() => {
       cleanupEffects(this);
     }
   };
+  var uid = 0;
   function effect(fn, options = {}) {
     const _effect = new ReactiveEffect(fn, options.schedular);
+    _effect.id = uid++;
     _effect.run();
     const runner = _effect.run.bind(_effect);
     runner.effect = _effect;
     return runner;
+  }
+  var targetMap = /* @__PURE__ */ new WeakMap();
+  function trackEffect(target, key) {
+    if (!activeEffect)
+      return;
+    let depsMap = targetMap.get(target);
+    if (!depsMap) {
+      targetMap.set(target, depsMap = /* @__PURE__ */ new Map());
+    }
+    let dep = depsMap.get(key);
+    if (!dep) {
+      depsMap.set(key, dep = /* @__PURE__ */ new Set());
+    }
+    trackDepEffect(dep);
+  }
+  function trackDepEffect(dep) {
+    let shouldTrack = !dep.has(activeEffect);
+    if (shouldTrack) {
+      dep.add(activeEffect);
+      activeEffect.deps.push(dep);
+    }
+  }
+  function triggerEffect(target, key, value) {
+    const depsMap = targetMap.get(target);
+    if (!depsMap)
+      return;
+    let dep = depsMap.get(key);
+    if (!dep)
+      return;
+    triggerDepEffect(dep);
+  }
+  function triggerDepEffect(dep) {
+    dep = new Set(dep);
+    dep && dep.forEach((effect3) => {
+      if (effect3 !== activeEffect)
+        effect3.schedular ? effect3.schedular(effect3.run.bind(effect3)) : effect3.run();
+    });
   }
   function cleanupEffects(activeEffect2) {
     const { deps } = activeEffect2;
@@ -336,26 +384,127 @@ var VueRuntimeDom = (() => {
     activeEffect2.deps = [];
   }
 
+  // packages/reactivity/src/reactive.ts
+  var reactiveMap = /* @__PURE__ */ new WeakMap();
+  function reactive(obj) {
+    if (!isObject(obj))
+      return obj;
+    if (obj["__v_isReactive" /* IS_REACTIVE */])
+      return obj;
+    if (reactiveMap.has(obj))
+      return reactiveMap.get(obj);
+    const proxy = new Proxy(obj, {
+      get(target, key, receiver) {
+        if (key === "__v_isReactive" /* IS_REACTIVE */)
+          return true;
+        trackEffect(target, key);
+        let res = Reflect.get(target, key, receiver);
+        if (isObject(res)) {
+          return reactive(res);
+        }
+        return res;
+      },
+      set(target, key, value, receiver) {
+        let oldValue = target[key];
+        let result = Reflect.set(target, key, value, receiver);
+        if (oldValue !== value) {
+          triggerEffect(target, key, value);
+        }
+        return result;
+      }
+    });
+    return proxy;
+  }
+  function toReactive(val) {
+    if (isObject(val)) {
+      return reactive(val);
+    } else {
+      return val;
+    }
+  }
+
+  // packages/reactivity/src/ref.ts
+  var RefImpl = class {
+    constructor(_rawVal) {
+      this._rawVal = _rawVal;
+      this.dep = /* @__PURE__ */ new Set();
+      this._value = toReactive(_rawVal);
+    }
+    get value() {
+      if (activeEffect) {
+        trackDepEffect(this.dep);
+      }
+      return this._value;
+    }
+    set value(newVal) {
+      if (newVal !== this._rawVal) {
+        this._rawVal = newVal;
+        this._value = toReactive(newVal);
+        triggerDepEffect(this.dep);
+      }
+    }
+  };
+  function createRef(value) {
+    return new RefImpl(value);
+  }
+  function ref(val) {
+    return createRef(val);
+  }
+
+  // packages/runtime-core/src/schedular.ts
+  var queue = [];
+  function queueJob(job) {
+    if (!queue.includes(job)) {
+      queue.push(job);
+      queueFlush();
+    }
+  }
+  var isFlushing = false;
+  function queueFlush() {
+    if (!isFlushing) {
+      isFlushing = true;
+      Promise.resolve().then(flushJobs);
+    } else {
+    }
+  }
+  function flushJobs() {
+    isFlushing = false;
+    queue.sort((a, b) => a.id - b.id);
+    for (let job of queue) {
+      job();
+    }
+    queue.length = 0;
+  }
+
   // packages/runtime-core/src/renderer.ts
   var createRenderer = (renderOptions2) => {
+    const {
+      insert: hostInsert,
+      remove: hostRemove,
+      patchProps: hostPatchProps,
+      createElement: hostCreateElement,
+      createComment: hostCreateComment,
+      setText: hostSetText,
+      setElementText: hostSetElementText,
+      createText: hostCreateText
+    } = renderOptions2;
     const setupRenderEffect = (instance, container) => {
-      instance.update = effect(function componentEffect() {
-        if (!instance.isMounted) {
-          const instanceToUse = instance.proxy;
-          const subTree = instance.subTree = instance.render.call(
-            instanceToUse,
-            instanceToUse
-          );
-          patch(null, subTree, container);
-          instance.isMounted = true;
-        } else {
+      instance.update = effect(
+        function componentEffect() {
+          if (!instance.isMounted) {
+            const instanceToUse = instance.proxy;
+            const subTree = instance.subTree = instance.render.call(
+              instanceToUse,
+              instanceToUse
+            );
+            patch(null, subTree, container);
+            instance.isMounted = true;
+          }
+        },
+        {
+          schedular: queueJob
         }
-      });
-    };
-    const mountComponent = (initialVnode, container) => {
-      const instance = initialVnode.component = createComponentInstance(initialVnode);
-      setupComponent(instance);
-      setupRenderEffect(instance, container);
+      );
     };
     const processComponent = (n1, n2, container) => {
       if (n1 == null) {
@@ -363,12 +512,56 @@ var VueRuntimeDom = (() => {
       } else {
       }
     };
+    const mountComponent = (initialVnode, container) => {
+      const instance = initialVnode.component = createComponentInstance(initialVnode);
+      setupComponent(instance);
+      setupRenderEffect(instance, container);
+    };
+    const processElement = (n1, n2, container) => {
+      if (n1 == null) {
+        mountElement(n2, container);
+      } else {
+      }
+    };
+    const mountElement = (vnode, container) => {
+      const { props, shapeFlag, type, children } = vnode;
+      let el = vnode.el = hostCreateElement(type);
+      if (props) {
+        for (const key in props) {
+          hostPatchProps(el, key, null, props[key]);
+        }
+      }
+      if (shapeFlag & 8 /* TEXT_CHILDREN */) {
+        hostSetElementText(el, children);
+      } else if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+        mountChildren(children, el);
+      }
+      hostInsert(el, container);
+    };
+    const mountChildren = (children, el) => {
+      for (let i = 0; i < children.length; i++) {
+        let child = normalizeVnode(children[i]);
+        patch(null, child, el);
+      }
+    };
+    const processText = (n1, n2, container) => {
+      if (n1 === null) {
+        hostInsert(n2.el = hostCreateText(n2.children), container);
+      } else {
+      }
+    };
     const patch = (n1, n2, container) => {
-      const { shapeFlag } = n2;
-      if (shapeFlag & 1 /* ELEMENT */) {
-        console.log("patch \u5143\u7D20");
-      } else if (shapeFlag & 4 /* STATEFUL_COMPONENT */) {
-        processComponent(n1, n2, container);
+      const { shapeFlag, type } = n2;
+      switch (type) {
+        case Text:
+          processText(n1, n2, container);
+          break;
+        default:
+          if (shapeFlag & 1 /* ELEMENT */) {
+            processElement(n1, n2, container);
+          } else if (shapeFlag & 4 /* STATEFUL_COMPONENT */) {
+            processComponent(n1, n2, container);
+          }
       }
     };
     const render = (vnode, container) => {

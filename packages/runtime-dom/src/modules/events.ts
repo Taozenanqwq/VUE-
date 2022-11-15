@@ -11,7 +11,7 @@ export const patchEvents = (el, key, event) => {
   if (event && exists) {
     exists.value = event
   } else {
-    const eventName = key.slice(2).toLowercase()
+    const eventName = key.slice(2).toLowerCase()
     if (event) {
       let invoker = (invokers[eventName] = createInvoker(event))
       el.addEventListener(eventName, invoker)

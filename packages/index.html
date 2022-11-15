@@ -10,11 +10,24 @@
   <div id="app"></div>
   <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
   <script>
-    const { createApp, h  } = VueRuntimeDom
+    const { createApp, h, ref  } = VueRuntimeDom
+    let el = {
+      setup(){
+        let test = ref('test')
+        return (proxy)=>{
+          return h('div',{onClick:()=>{
+            test.value = 'test2'
+            test.value = 'test3'
+            test.value = 'test4'
+            test.value = 'test5'
+          }},[test.value,h('div',{style:{color:'red'}},'1111')])
+        }
+      }
+    }
     let app = {
       setup(props,context){
         return (proxy)=>{
-          return h('div',{},'asdf')
+          return h(el,{})
         }
       }
     }

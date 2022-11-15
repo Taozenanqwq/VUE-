@@ -10,7 +10,7 @@ export const patchStyle = (el, preStyle, nextStyle) => {
         }
       }
     }
-    for (let key of nextStyle) {
+    for (let key of Object.keys(nextStyle)) {
       style[key] = nextStyle[key]
     }
   }

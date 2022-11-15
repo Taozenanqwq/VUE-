@@ -31,6 +31,7 @@ const setupStatefulComponent = (instance) => {
   if (setup) {
     const setupContext = createContext(instance)
     const setupResult = setup(instance.props, setupContext)
+    console.log(setupResult)
     handleSetupResult(instance, setupResult)
   } else {
     finishComponentSetup(instance)

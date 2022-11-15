@@ -7,7 +7,7 @@ export const nodeOps = {
     }
   },
   insert: (child, parent, anchor) => {
-    parent.insertChild(child, anchor)
+    parent.appendChild(child, anchor)
   },
   querySelector: (selector) => document.querySelector(selector),
   setElementText: (el, text) => (el.textContent = text),

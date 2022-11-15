@@ -3,6 +3,7 @@ export class ReactiveEffect {
   public active = true
   public parent = null
   public deps = []
+  public id
   constructor(public fn, public schedular) {}
   run() {
     if (!this.active) return this.fn()
@@ -23,9 +24,10 @@ export class ReactiveEffect {
     cleanupEffects(this)
   }
 }
-
+let uid = 0
 export function effect(fn, options: any = {}) {
   const _effect = new ReactiveEffect(fn, options.schedular)
+  _effect.id = uid++
   _effect.run()
   const runner = _effect.run.bind(_effect) /** 绑定this值 */
   runner.effect = _effect
@@ -66,7 +68,9 @@ export function triggerDepEffect(dep) {
   dep &&
     dep.forEach((effect) => {
       if (effect !== activeEffect)
-        effect.schedular ? effect.schedular() : effect.run()
+        effect.schedular
+          ? effect.schedular(effect.run.bind(effect))
+          : effect.run()
     })
 }
 
