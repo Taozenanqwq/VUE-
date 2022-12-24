@@ -1,38 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width='device-width', initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
-  <script>
-    const { createApp, h, ref  } = VueRuntimeDom
-    let el = {
-      setup(){
-        let test = ref('test')
-        return (proxy)=>{
-          return h('div',{onClick:()=>{
-            test.value = 'test2'
-            test.value = 'test3'
-            test.value = 'test4'
-            test.value = 'test5'
-          }},[test.value,h('div',{style:{color:'red'}},'1111')])
-        }
-      }
-    }
-    let app = {
-      setup(props,context){
-        return (proxy)=>{
-          return h(el,{})
-        }
-      }
-    }
-    let  t = createApp(app).mount('#app')
-  </script>
-
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width='device-width', initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
+    <script>
+      const { compileToRender } = VueRuntimeDom
+      compileToRender(`<div style="width:'100px';"><span>    123  </span></div>`)
+      // let el = {
+      //   setup(){
+      //     let test = ref('test')
+      //     return (proxy)=>{
+      //       return h('div',{onClick:()=>{
+      //         test.value = 'test2'
+      //         test.value = 'test3'
+      //         test.value = 'test4'
+      //         test.value = 'test5'
+      //       }},[test.value,h('div',{style:{color:'red'}},'1111')])
+      //     }
+      //   }
+      // }
+      // let app = {
+      //   setup(props,context){
+      //     return (proxy)=>{
+      //       return h(el,{})
+      //     }
+      //   }
+      // }
+      // let  t = createApp(app).mount('#app')
+    </script>
+  </body>
 </html>

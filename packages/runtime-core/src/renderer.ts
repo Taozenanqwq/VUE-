@@ -193,13 +193,26 @@ export const createRenderer = (renderOptions) => {
         const node = c2[i]
         map.set(node.key, i)
       }
+      const toBePatched = e2 - s2 + 1
+      const newIndexToOldIndex = new Array(toBePatched).fill(0)
       for (let i = s1; i < s1; i++) {
         const oldNode = c1[i]
         const newIndex = map.get(c1[i].key)
         if (newIndex) {
+          newIndexToOldIndex[newIndex] = i + 1
           patch(oldNode, c2[newIndex], el)
         } else {
           unmount(oldNode)
+        }
+      }
+      for (let i = toBePatched; i >= 0; i++) {
+        const child = c2[i + s2]
+        const anchor = c2[i + s2 + 1] ? c2[i + s2 + 1].el : null
+        if (newIndexToOldIndex[i + s2] !== 0) {
+          patch(null, child, el, anchor)
+        } else {
+          /** 获取最长递增子序列，减少dom移动操作，有点复杂这里暂不实现 */
+          hostInsert(child.el, el, anchor)
         }
       }
     }

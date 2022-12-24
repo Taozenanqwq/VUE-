@@ -1,6 +1,7 @@
 import { ShapeFlags } from './shapeFlag'
 import { publicInstanceProxyHandlers } from './componentPublicInstace'
 import { isFunction, isObject } from '@vue/shared'
+import { compileToRender } from '@vue/compile-core'
 export const createComponentInstance = (vnode) => {
   const instance = {
     vnode,
@@ -11,7 +12,7 @@ export const createComponentInstance = (vnode) => {
     setupState: {},
     render: null,
     ctx: {},
-    isMounted: false,
+    isMounted: false
   }
   instance.ctx = { _: instance }
   return instance
@@ -49,7 +50,8 @@ const finishComponentSetup = (instance) => {
   let Component = instance.type
   if (!instance.render) {
     if (!Component.render && Component.template) {
-      console.log('编译模板')
+      const render = compileToRender(Component.template)
+      instance.render = render
     }
   }
 }
@@ -59,6 +61,6 @@ const createContext = (instance) => {
     attrs: instance.attrs,
     slots: instance.slots,
     emit: () => {},
-    expose: () => {},
+    expose: () => {}
   }
 }
