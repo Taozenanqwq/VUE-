@@ -11,7 +11,7 @@
     <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
     <script>
       const { compileToRender } = VueRuntimeDom
-      compileToRender(`<div style="width:'100px';"><span>    123  </span></div>`)
+      compileToRender(`<div style="width:'100px';"><span>   {{name}} 123 {{age}} 12312</span></div>`)
       // let el = {
       //   setup(){
       //     let test = ref('test')
