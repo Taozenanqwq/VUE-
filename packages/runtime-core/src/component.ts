@@ -2,6 +2,7 @@ import { ShapeFlags } from './shapeFlag'
 import { publicInstanceProxyHandlers } from './componentPublicInstace'
 import { isFunction, isObject } from '@vue/shared'
 import { compileToRender } from '@vue/compile-core'
+import { createVNode, Text } from './vnode'
 export const createComponentInstance = (vnode) => {
   const instance = {
     vnode,
@@ -32,7 +33,6 @@ const setupStatefulComponent = (instance) => {
   if (setup) {
     const setupContext = createContext(instance)
     const setupResult = setup(instance.props, setupContext)
-    console.log(setupResult)
     handleSetupResult(instance, setupResult)
   } else {
     finishComponentSetup(instance)
@@ -51,7 +51,13 @@ const finishComponentSetup = (instance) => {
   if (!instance.render) {
     if (!Component.render && Component.template) {
       const render = compileToRender(Component.template)
-      instance.render = render
+      console.log(render)
+      instance.render = render.bind(
+        instance.setupState,
+        (type, props, children) => createVNode(type, props, children),
+        (text) => text,
+        (s) => (isObject(s) ? JSON.stringify(s) : s)
+      )
     }
   }
 }

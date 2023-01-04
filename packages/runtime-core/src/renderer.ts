@@ -5,26 +5,14 @@ import { effect } from '@vue/reactivity'
 import { isSameVnode, normalizeVnode, Text } from './vnode'
 import { queueJob } from './schedular'
 export const createRenderer = (renderOptions) => {
-  const {
-    insert: hostInsert,
-    remove: hostRemove,
-    patchProps: hostPatchProps,
-    createElement: hostCreateElement,
-    createComment: hostCreateComment,
-    setText: hostSetText,
-    setElementText: hostSetElementText,
-    createText: hostCreateText,
-    nextSibling: hostNextSibling,
-  } = renderOptions
+  const { insert: hostInsert, remove: hostRemove, patchProps: hostPatchProps, createElement: hostCreateElement, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, createText: hostCreateText, nextSibling: hostNextSibling } = renderOptions
   const setupRenderEffect = (instance, container) => {
     instance.update = effect(
       function componentEffect() {
         if (!instance.isMounted) {
           const instanceToUse = instance.proxy
-          const subTree = (instance.subTree = instance.render.call(
-            instanceToUse,
-            instanceToUse
-          ))
+          const subTree = (instance.subTree = instance.render.call(instanceToUse, instanceToUse))
+          console.log(subTree)
           patch(null, subTree, container)
           instance.isMounted = true
         } else {
@@ -35,7 +23,7 @@ export const createRenderer = (renderOptions) => {
         }
       },
       {
-        schedular: queueJob,
+        schedular: queueJob
       }
     )
   }
@@ -52,8 +40,7 @@ export const createRenderer = (renderOptions) => {
   }
   /** 挂载组件 */
   const mountComponent = (initialVnode, container) => {
-    const instance = (initialVnode.component =
-      createComponentInstance(initialVnode))
+    const instance = (initialVnode.component = createComponentInstance(initialVnode))
     setupComponent(instance)
     setupRenderEffect(instance, container)
   }
@@ -246,6 +233,7 @@ export const createRenderer = (renderOptions) => {
     }
     switch (type) {
       case Text:
+        debugger
         processText(n1, n2, container)
         break
       default:
@@ -261,6 +249,6 @@ export const createRenderer = (renderOptions) => {
     patch(null, vnode, container)
   }
   return {
-    createApp: createAppApi(render),
+    createApp: createAppApi(render)
   }
 }

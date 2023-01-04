@@ -37,6 +37,7 @@ var VueRuntimeDom = (() => {
     compileToRender: () => compileToRender,
     createApp: () => createApp,
     createRenderer: () => createRenderer,
+    createVNode: () => createVNode,
     h: () => h,
     ref: () => ref
   });
@@ -339,7 +340,6 @@ var VueRuntimeDom = (() => {
   function compileToRender(template) {
     const ast = parseHTML(template);
     const code = codegen(ast);
-    console.log(code);
     return code;
   }
   function genProps(attrs) {
@@ -394,7 +394,9 @@ var VueRuntimeDom = (() => {
   function codegen(ast) {
     let children = genChildren(ast);
     let code = `_c('${ast.tag}',${ast.attrs.length > 0 ? genProps(ast.attrs) : "null"},${ast.children.length > 0 ? children : ""})`;
-    return code;
+    code = `with (this) {return ${code}}`;
+    let render = new Function("_c", "_v", "_s", code);
+    return render;
   }
 
   // packages/runtime-core/src/component.ts
@@ -428,7 +430,6 @@ var VueRuntimeDom = (() => {
     if (setup) {
       const setupContext = createContext(instance);
       const setupResult = setup(instance.props, setupContext);
-      console.log(setupResult);
       handleSetupResult(instance, setupResult);
     } else {
       finishComponentSetup(instance);
@@ -447,7 +448,13 @@ var VueRuntimeDom = (() => {
     if (!instance.render) {
       if (!Component.render && Component.template) {
         const render = compileToRender(Component.template);
-        instance.render = render;
+        console.log(render);
+        instance.render = render.bind(
+          instance.setupState,
+          (type, props, children) => createVNode(type, props, children),
+          (text) => text,
+          (s) => isObject(s) ? JSON.stringify(s) : s
+        );
       }
     }
   };
@@ -639,26 +646,14 @@ var VueRuntimeDom = (() => {
 
   // packages/runtime-core/src/renderer.ts
   var createRenderer = (renderOptions2) => {
-    const {
-      insert: hostInsert,
-      remove: hostRemove,
-      patchProps: hostPatchProps,
-      createElement: hostCreateElement,
-      createComment: hostCreateComment,
-      setText: hostSetText,
-      setElementText: hostSetElementText,
-      createText: hostCreateText,
-      nextSibling: hostNextSibling
-    } = renderOptions2;
+    const { insert: hostInsert, remove: hostRemove, patchProps: hostPatchProps, createElement: hostCreateElement, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, createText: hostCreateText, nextSibling: hostNextSibling } = renderOptions2;
     const setupRenderEffect = (instance, container) => {
       instance.update = effect(
         function componentEffect() {
           if (!instance.isMounted) {
             const instanceToUse = instance.proxy;
-            const subTree = instance.subTree = instance.render.call(
-              instanceToUse,
-              instanceToUse
-            );
+            const subTree = instance.subTree = instance.render.call(instanceToUse, instanceToUse);
+            console.log(subTree);
             patch(null, subTree, container);
             instance.isMounted = true;
           } else {
@@ -860,6 +855,7 @@ var VueRuntimeDom = (() => {
       }
       switch (type) {
         case Text:
+          debugger;
           processText(n1, n2, container);
           break;
         default:

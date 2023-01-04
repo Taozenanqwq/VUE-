@@ -3,7 +3,6 @@ const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 export function compileToRender(template) {
   const ast = parseHTML(template)
   const code = codegen(ast)
-  console.log(code)
   return code
 }
 function genProps(attrs) {
@@ -58,5 +57,7 @@ function gen(child) {
 function codegen(ast) {
   let children = genChildren(ast)
   let code = `_c('${ast.tag}',${ast.attrs.length > 0 ? genProps(ast.attrs) : 'null'},${ast.children.length > 0 ? children : ''})`
-  return code
+  code = `with (this) {return ${code}}`
+  let render = new Function('_c', '_v', '_s', code)
+  return render
 }
