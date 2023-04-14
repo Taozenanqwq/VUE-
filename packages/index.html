@@ -10,14 +10,12 @@
     <div id="app"></div>
     <script src="./runtime-dom/dist/runtime-dom.iife.js"></script>
     <script>
-      const { createApp, h, ref } = VueRuntimeDom
+      const { createApp, h, ref, reactive } = VueRuntimeDom
       let el = {
-        template: `<div style="position:absolute;top:30px;color:red;">{{test.value}}</div>`,
-        setup() {
+        template: '<div style="position:absolute;top:30px;color:red;">{{test}}</div>',
+        setup(props) {
           let test = ref('test11')
-          return {
-            test
-          }
+          return { test }
         }
       }
       let app = {
@@ -27,7 +25,8 @@
           }
         }
       }
-      let t = createApp(app).mount('#app')
+      let t = createApp(app)
+      t.mount('#app')
     </script>
   </body>
 </html>

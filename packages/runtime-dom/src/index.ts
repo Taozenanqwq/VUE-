@@ -12,6 +12,7 @@ export function createApp(rootComponent, rootProps = {}) {
   app.mount = (container) => {
     container = document.querySelector(container)
     container.innerHTML = ''
+    app._container = container
     mount(container)
   }
   return app

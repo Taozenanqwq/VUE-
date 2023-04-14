@@ -39,6 +39,7 @@ var VueRuntimeDom = (() => {
     createRenderer: () => createRenderer,
     createVNode: () => createVNode,
     h: () => h,
+    reactive: () => reactive,
     ref: () => ref
   });
 
@@ -394,7 +395,9 @@ var VueRuntimeDom = (() => {
   function codegen(ast) {
     let children = genChildren(ast);
     let code = `_c('${ast.tag}',${ast.attrs.length > 0 ? genProps(ast.attrs) : "null"},${ast.children.length > 0 ? children : ""})`;
-    code = `with (this) {return ${code}}`;
+    code = `with(this) {
+    return ${code}
+  }`;
     let render = new Function("_c", "_v", "_s", code);
     return render;
   }
@@ -439,6 +442,7 @@ var VueRuntimeDom = (() => {
     if (isFunction(setupResult)) {
       instance.render = setupResult;
     } else if (isObject(setupResult)) {
+      console.log(setupResult);
       instance.setupState = setupResult;
     }
     finishComponentSetup(instance);
@@ -448,12 +452,13 @@ var VueRuntimeDom = (() => {
     if (!instance.render) {
       if (!Component.render && Component.template) {
         const render = compileToRender(Component.template);
-        console.log(render);
         instance.render = render.bind(
           instance.setupState,
           (type, props, children) => createVNode(type, props, children),
           (text) => text,
-          (s) => isObject(s) ? JSON.stringify(s) : s
+          (s) => {
+            return isObject(s) ? JSON.stringify(s) : s;
+          }
         );
       }
     }
@@ -646,14 +651,23 @@ var VueRuntimeDom = (() => {
 
   // packages/runtime-core/src/renderer.ts
   var createRenderer = (renderOptions2) => {
-    const { insert: hostInsert, remove: hostRemove, patchProps: hostPatchProps, createElement: hostCreateElement, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, createText: hostCreateText, nextSibling: hostNextSibling } = renderOptions2;
+    const {
+      insert: hostInsert,
+      remove: hostRemove,
+      patchProps: hostPatchProps,
+      createElement: hostCreateElement,
+      createComment: hostCreateComment,
+      setText: hostSetText,
+      setElementText: hostSetElementText,
+      createText: hostCreateText,
+      nextSibling: hostNextSibling
+    } = renderOptions2;
     const setupRenderEffect = (instance, container) => {
       instance.update = effect(
         function componentEffect() {
           if (!instance.isMounted) {
             const instanceToUse = instance.proxy;
             const subTree = instance.subTree = instance.render.call(instanceToUse, instanceToUse);
-            console.log(subTree);
             patch(null, subTree, container);
             instance.isMounted = true;
           } else {
@@ -805,7 +819,8 @@ var VueRuntimeDom = (() => {
         const map = /* @__PURE__ */ new Map();
         for (let i2 = s2; i2 < e2; i2++) {
           const node = c2[i2];
-          map.set(node.key, i2);
+          if (node.key !== void 0)
+            map.set(node.key, i2);
         }
         const toBePatched = e2 - s2 + 1;
         const newIndexToOldIndex = new Array(toBePatched).fill(0);
@@ -819,10 +834,10 @@ var VueRuntimeDom = (() => {
             unmount(oldNode);
           }
         }
-        for (let i2 = toBePatched; i2 >= 0; i2++) {
+        for (let i2 = toBePatched; i2 >= 0; i2--) {
           const child = c2[i2 + s2];
           const anchor = c2[i2 + s2 + 1] ? c2[i2 + s2 + 1].el : null;
-          if (newIndexToOldIndex[i2 + s2] !== 0) {
+          if (newIndexToOldIndex[i2 + s2] == 0) {
             patch(null, child, el, anchor);
           } else {
             hostInsert(child.el, el, anchor);
@@ -855,7 +870,6 @@ var VueRuntimeDom = (() => {
       }
       switch (type) {
         case Text:
-          debugger;
           processText(n1, n2, container);
           break;
         default:
@@ -904,6 +918,7 @@ var VueRuntimeDom = (() => {
     app.mount = (container) => {
       container = document.querySelector(container);
       container.innerHTML = "";
+      app._container = container;
       mount(container);
     };
     return app;

@@ -3,6 +3,7 @@ import { publicInstanceProxyHandlers } from './componentPublicInstace'
 import { isFunction, isObject } from '@vue/shared'
 import { compileToRender } from '@vue/compile-core'
 import { createVNode, Text } from './vnode'
+import { debug } from 'console'
 export const createComponentInstance = (vnode) => {
   const instance = {
     vnode,
@@ -23,6 +24,7 @@ export const setupComponent = (instance) => {
   instance.props = props
   instance.children = children
   if (instance.vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+    /*  有状态的组件    */
     setupStatefulComponent(instance)
   }
 }
@@ -42,6 +44,7 @@ const handleSetupResult = (instance, setupResult) => {
   if (isFunction(setupResult)) {
     instance.render = setupResult
   } else if (isObject(setupResult)) {
+    console.log(setupResult)
     instance.setupState = setupResult
   }
   finishComponentSetup(instance)
@@ -51,12 +54,13 @@ const finishComponentSetup = (instance) => {
   if (!instance.render) {
     if (!Component.render && Component.template) {
       const render = compileToRender(Component.template)
-      console.log(render)
       instance.render = render.bind(
         instance.setupState,
         (type, props, children) => createVNode(type, props, children),
         (text) => text,
-        (s) => (isObject(s) ? JSON.stringify(s) : s)
+        (s) => {
+          return isObject(s) ? JSON.stringify(s) : s
+        }
       )
     }
   }

@@ -1,5 +1,6 @@
 export { createRenderer } from './renderer'
 export { h } from './h'
 export { ref } from '../../reactivity/src/ref'
+export { reactive } from '../../reactivity/src/reactive'
 export { compileToRender } from '@vue/compile-core'
 export { createVNode } from './vnode'

@@ -68,9 +68,7 @@ export function triggerDepEffect(dep) {
   dep &&
     dep.forEach((effect) => {
       if (effect !== activeEffect)
-        effect.schedular
-          ? effect.schedular(effect.run.bind(effect))
-          : effect.run()
+        effect.schedular ? effect.schedular(effect.run.bind(effect)) : effect.run()
     })
 }
 

@@ -4,15 +4,25 @@ import { createComponentInstance, setupComponent } from './component'
 import { effect } from '@vue/reactivity'
 import { isSameVnode, normalizeVnode, Text } from './vnode'
 import { queueJob } from './schedular'
+import { debug } from 'console'
 export const createRenderer = (renderOptions) => {
-  const { insert: hostInsert, remove: hostRemove, patchProps: hostPatchProps, createElement: hostCreateElement, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, createText: hostCreateText, nextSibling: hostNextSibling } = renderOptions
+  const {
+    insert: hostInsert,
+    remove: hostRemove,
+    patchProps: hostPatchProps,
+    createElement: hostCreateElement,
+    createComment: hostCreateComment,
+    setText: hostSetText,
+    setElementText: hostSetElementText,
+    createText: hostCreateText,
+    nextSibling: hostNextSibling
+  } = renderOptions
   const setupRenderEffect = (instance, container) => {
     instance.update = effect(
       function componentEffect() {
         if (!instance.isMounted) {
           const instanceToUse = instance.proxy
           const subTree = (instance.subTree = instance.render.call(instanceToUse, instanceToUse))
-          console.log(subTree)
           patch(null, subTree, container)
           instance.isMounted = true
         } else {
@@ -178,7 +188,7 @@ export const createRenderer = (renderOptions) => {
       const map = new Map()
       for (let i = s2; i < e2; i++) {
         const node = c2[i]
-        map.set(node.key, i)
+        if (node.key !== undefined) map.set(node.key, i)
       }
       const toBePatched = e2 - s2 + 1
       const newIndexToOldIndex = new Array(toBePatched).fill(0)
@@ -192,10 +202,10 @@ export const createRenderer = (renderOptions) => {
           unmount(oldNode)
         }
       }
-      for (let i = toBePatched; i >= 0; i++) {
+      for (let i = toBePatched; i >= 0; i--) {
         const child = c2[i + s2]
         const anchor = c2[i + s2 + 1] ? c2[i + s2 + 1].el : null
-        if (newIndexToOldIndex[i + s2] !== 0) {
+        if (newIndexToOldIndex[i + s2] == 0) {
           patch(null, child, el, anchor)
         } else {
           /** 获取最长递增子序列，减少dom移动操作，有点复杂这里暂不实现 */
@@ -233,7 +243,6 @@ export const createRenderer = (renderOptions) => {
     }
     switch (type) {
       case Text:
-        debugger
         processText(n1, n2, container)
         break
       default:
